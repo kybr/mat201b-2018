@@ -6,6 +6,8 @@ using namespace std;
 int main() {
   Vec3f a(0, 0, 1), b(0, 1, 0);
 
+  // test the dot and cross product
+  //
   cout << a << endl;
   cout << b << endl;
 
@@ -18,6 +20,8 @@ int main() {
   cout << cross(a, c) << endl;
   cout << a.cross(c) << endl;
 
+  // use lerp to move 'a' half way between 'a' and 'b'
+  //
   a.lerp(b, 0.5);
   cout << a << endl;
 }

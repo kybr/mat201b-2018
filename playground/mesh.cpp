@@ -1,6 +1,9 @@
 #include "allocore/io/al_App.hpp"
 using namespace al;
 
+// we wrote this to explore the Mesh class
+//
+
 struct Frame : Mesh {
   Frame() {
     primitive(Graphics::LINES);
@@ -43,7 +46,6 @@ struct MyApp : App {
     // use a mesh like an array of Vec3f
     c.vertices()[0].z = 5;
 
-    const Buffer<Circle::Vertex>& b = c.vertices();
     c.vertices()[60] = cross(c.vertices()[10], c.vertices()[90]);
 
     // addTetrahedron(mesh);

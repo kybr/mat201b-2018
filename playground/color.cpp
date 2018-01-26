@@ -1,6 +1,10 @@
 #include "allocore/io/al_App.hpp"
 using namespace al;
 
+// the point here was to animate the background color of the window and to
+// learn how to use the various color types in AlloSystem: Color, RGB, RGBA,
+// HSV, etc.
+
 struct MyApp : App {
   Color bg;
   float t = 0;
