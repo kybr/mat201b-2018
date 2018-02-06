@@ -4,14 +4,14 @@ using namespace std;
 
 // some of these must be carefully balanced; i spent some time turning them.
 // change them however you like, but make a note of these settings.
-unsigned particleCount = 500;     // try 2, 5, 50, and 5000
-double maximumAcceleration = 30;  // prevents explosion, loss of particles
-double initialRadius = 50;        // initial condition
-double initialSpeed = 50;         // initial condition
-double gravityFactor = 1e6;       // see Gravitational Constant
-double timeStep = 0.0625;         // keys change this value for effect
-double scaleFactor = 0.1;         // resizes the entire scene
-double sphereRadius = 3;  // increase this to make collisions more frequent
+unsigned particleCount = 500;    // try 2, 5, 50, and 5000
+float maximumAcceleration = 30;  // prevents explosion, loss of particles
+float initialRadius = 50;        // initial condition
+float initialSpeed = 50;         // initial condition
+float gravityFactor = 1e6;       // see Gravitational Constant
+float timeStep = 0.0625;         // keys change this value for effect
+float scaleFactor = 0.1;         // resizes the entire scene
+float sphereRadius = 3;  // increase this to make collisions more frequent
 
 Mesh sphere;  // global prototype; leave this alone
 
@@ -71,7 +71,7 @@ struct MyApp : App {
         Particle& a = particle[i];
         Particle& b = particle[j];
         Vec3f difference = (b.position - a.position);
-        double d = difference.mag();
+        float d = difference.mag();
         // F = ma where m=1
         Vec3f acceleration = difference / (d * d * d) * gravityFactor;
         // equal and opposite force (symmetrical)
@@ -80,13 +80,18 @@ struct MyApp : App {
       }
 
     // Limit acceleration
+    unsigned limitCount = 0;
     for (auto& p : particle)
-      if (p.acceleration.mag() > maximumAcceleration)
+      if (p.acceleration.mag() > maximumAcceleration) {
         p.acceleration.normalize(maximumAcceleration);
+        limitCount++;
+      }
+    printf("%u of %u\n", limitCount, particle.size());
 
     // Euler's Method; Keep the time step small
     for (auto& p : particle) p.position += p.velocity * timeStep;
     for (auto& p : particle) p.velocity += p.acceleration * timeStep;
+    for (auto& p : particle) p.acceleration.zero();  // XXX zero accelerations
   }
 
   void onDraw(Graphics& g) {
