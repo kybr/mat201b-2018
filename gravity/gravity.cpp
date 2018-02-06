@@ -4,14 +4,16 @@ using namespace std;
 
 // some of these must be carefully balanced; i spent some time turning them.
 // change them however you like, but make a note of these settings.
-unsigned particleCount = 500;    // try 2, 5, 50, and 5000
-float maximumAcceleration = 30;  // prevents explosion, loss of particles
-float initialRadius = 50;        // initial condition
-float initialSpeed = 50;         // initial condition
-float gravityFactor = 1e6;       // see Gravitational Constant
-float timeStep = 0.0625;         // keys change this value for effect
-float scaleFactor = 0.1;         // resizes the entire scene
-float sphereRadius = 3;  // increase this to make collisions more frequent
+unsigned particleCount = 2;       // try 2, 5, 50, and 5000
+float maximumAcceleration = 1e6;  // prevents explosion, loss of particles
+float initialRadius = 30;         // initial condition
+float initialSpeed = 0;           // initial condition
+float gravityFactor = 1e5;        // see Gravitational Constant
+float springFactor = 100;         //
+float dragFactor = 0.1;           //
+float timeStep = 0.015625;        // keys change this value for effect
+float scaleFactor = 0.1;          // resizes the entire scene
+float sphereRadius = 20;  // increase this to make collisions more frequent
 
 Mesh sphere;  // global prototype; leave this alone
 
@@ -41,7 +43,7 @@ struct MyApp : App {
   Material material;
   Light light;
   bool simulate = true;
-
+  unsigned frameCount = 0;
   vector<Particle> particle;
 
   MyApp() {
@@ -65,19 +67,39 @@ struct MyApp : App {
     //
     //  Detect Collisions Here
     //
+    unsigned collisionCount = 0;
+    for (unsigned i = 0; i < particle.size(); ++i)
+      for (unsigned j = 1 + i; j < particle.size(); ++j) {
+        Particle& a = particle[i];
+        Particle& b = particle[j];
+
+        Vec3f difference = (b.position - a.position);
+        float d = difference.mag();
+        if (d > 2 * sphereRadius) continue;
+        float compressionFactor = 2 * sphereRadius - d;
+        Vec3f acceleration =
+            difference.normalize(compressionFactor * -springFactor);
+        a.acceleration += acceleration;
+        b.acceleration -= acceleration;
+        //
+        collisionCount++;
+      }
+    if (collisionCount)
+      printf("%u: %u collisions\n", frameCount, collisionCount);
 
     for (unsigned i = 0; i < particle.size(); ++i)
       for (unsigned j = 1 + i; j < particle.size(); ++j) {
         Particle& a = particle[i];
         Particle& b = particle[j];
+
         Vec3f difference = (b.position - a.position);
         float d = difference.mag();
-        // F = ma where m=1
         Vec3f acceleration = difference / (d * d * d) * gravityFactor;
-        // equal and opposite force (symmetrical)
         a.acceleration += acceleration;
         b.acceleration -= acceleration;
       }
+
+    for (auto& p : particle) p.acceleration += p.velocity * -dragFactor;
 
     // Limit acceleration
     unsigned limitCount = 0;
@@ -86,12 +108,15 @@ struct MyApp : App {
         p.acceleration.normalize(maximumAcceleration);
         limitCount++;
       }
-    printf("%u of %u\n", limitCount, particle.size());
+    if (limitCount)
+      printf("%u: %u of %u\n", frameCount, limitCount, particle.size());
 
     // Euler's Method; Keep the time step small
     for (auto& p : particle) p.position += p.velocity * timeStep;
     for (auto& p : particle) p.velocity += p.acceleration * timeStep;
     for (auto& p : particle) p.acceleration.zero();  // XXX zero accelerations
+
+    frameCount++;
   }
 
   void onDraw(Graphics& g) {
