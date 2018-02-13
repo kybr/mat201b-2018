@@ -24,4 +24,7 @@ int main() {
   //
   a.lerp(b, 0.5);
   cout << a << endl;
+
+  Vec3f foo(1, 2, 3);
+  cout << abs(foo) << " vs " << foo.mag() << endl;
 }

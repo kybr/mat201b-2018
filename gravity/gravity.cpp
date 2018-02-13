@@ -4,16 +4,16 @@ using namespace std;
 
 // some of these must be carefully balanced; i spent some time turning them.
 // change them however you like, but make a note of these settings.
-unsigned particleCount = 2;       // try 2, 5, 50, and 5000
+unsigned particleCount = 12;      // try 2, 5, 50, and 5000
 float maximumAcceleration = 1e6;  // prevents explosion, loss of particles
 float initialRadius = 30;         // initial condition
 float initialSpeed = 0;           // initial condition
-float gravityFactor = 1e5;        // see Gravitational Constant
-float springFactor = 100;         //
-float dragFactor = 0.1;           //
-float timeStep = 0.015625;        // keys change this value for effect
-float scaleFactor = 0.1;          // resizes the entire scene
-float sphereRadius = 20;  // increase this to make collisions more frequent
+float gravityFactor = 3e5;        // see Gravitational Constant
+float springFactor = 600;
+float dragFactor = 0.01;    //
+float timeStep = 0.015625;  // keys change this value for effect
+float scaleFactor = 0.1;    // resizes the entire scene
+float sphereRadius = 10;    // increase this to make collisions more frequent
 
 Mesh sphere;  // global prototype; leave this alone
 
