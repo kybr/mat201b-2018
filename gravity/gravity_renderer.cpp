@@ -111,4 +111,8 @@ struct MyApp : App {
   }
 };
 
-int main() { MyApp().start(); }
+int main() {
+  MyApp app;
+  app.taker.start();
+  app.start();
+}

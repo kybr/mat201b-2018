@@ -1,3 +1,4 @@
+#include "Cuttlebone/Cuttlebone.hpp"
 #include "allocore/io/al_App.hpp"
 using namespace al;
 using namespace std;
@@ -39,14 +40,22 @@ struct Particle {
   }
 };
 
+struct State {
+  int n;
+  Vec3f position[1000];
+};
+
 struct MyApp : App {
+  cuttlebone::Maker<State> maker;
+  State* state = new State;
+
   Material material;
   Light light;
   bool simulate = true;
   unsigned frameCount = 0;
   vector<Particle> particle;
 
-  MyApp() {
+  MyApp() : maker("255.255.255.255") {
     addSphere(sphere, sphereRadius);
     sphere.generateNormals();
     light.pos(0, 0, 0);              // place the light
@@ -117,6 +126,11 @@ struct MyApp : App {
     for (auto& p : particle) p.acceleration.zero();  // XXX zero accelerations
 
     frameCount++;
+
+    for (unsigned i = 0; i < particle.size(); i++)
+      state->position[i] = particle[i].position.normalize(40);
+    state->n = particle.size();
+    maker.set(*state);
   }
 
   void onDraw(Graphics& g) {
@@ -156,4 +170,8 @@ struct MyApp : App {
   }
 };
 
-int main() { MyApp().start(); }
+int main() {
+  MyApp app;
+  app.maker.start();
+  app.start();
+}

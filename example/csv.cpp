@@ -10,7 +10,6 @@
 // - verify that all the rows are the same length
 //
 
-#include <cassert>
 #include <fstream>
 #include <sstream>
 #include "allocore/io/al_App.hpp"
@@ -21,7 +20,10 @@ string fullPathOrDie(string fileName, string whereToLook = ".") {
   SearchPaths searchPaths;
   searchPaths.addSearchPath(whereToLook);
   string filePath = searchPaths.find(fileName).filepath();
-  assert(filePath != "");
+  if (filePath == "") {
+    fprintf(stderr, "FAIL\n");
+    exit(1);
+  }
   return filePath;
 }
 
@@ -33,7 +35,7 @@ struct AlloApp : App {
 
     // find and open the data file and die unless we have it open
     //
-    ifstream f(fullPathOrDie("data.csv", "../media"), ios::in);
+    ifstream f(fullPathOrDie("data.csv", ".."), ios::in);
     if (!f.is_open()) {
       cout << "file not open" << endl;
       exit(1);

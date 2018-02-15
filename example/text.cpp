@@ -16,6 +16,14 @@
 using namespace al;
 using namespace std;
 
+string fullPathOrDie(string fileName, string whereToLook = ".") {
+  SearchPaths searchPaths;
+  searchPaths.addSearchPath(whereToLook);
+  string filePath = searchPaths.find(fileName).filepath();
+  assert(filePath != "");
+  return filePath;
+}
+
 class MyApp : public App {
  public:
   Font font1;
@@ -27,7 +35,7 @@ class MyApp : public App {
   double stateTime = 0, timer = 0;
   int state = 0;
 
-  MyApp() : font1("../media/Avenir-Medium.otf", 40) {
+  MyApp() : font1(fullPathOrDie("Avenir-Medium.otf", ".."), 40) {
     nav().pos(0, 0, 10);
     light.pos(0, 0, 10);
     addSphere(m);

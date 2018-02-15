@@ -16,7 +16,7 @@ struct MyApp : App {
 
   MyApp() {
     // send to the local host
-    oscSend().open(60777, "127.0.0.1", 0.016, Socket::UDP);
+    oscSend().open(60777, "255.255.255.255", 0.016, Socket::UDP);
     // send to the local area network broadcast address
     // oscSend().open(60777, "255.255.255.255", 0.016, Socket::UDP);
     // alternative to the above for a specific network..
