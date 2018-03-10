@@ -3,8 +3,8 @@ using namespace al;
 using namespace std;
 
 const float sphereRadius = 1;
-const int particleCount = 20;
-const float scaleFactor = 1;
+const int particleCount = 30;
+const float scaleFactor = 0.3;
 
 Mesh sphere;  // global prototype; leave this alone
 
@@ -16,15 +16,21 @@ struct Particle {
   float speed, phase = 0;
   Color c;
   Particle() {
-    position = r().normalize() * 20;
+    position = r().normalize() * 23;
     velocity = r().normalize();
-    speed = rnd::uniform(0.3, 1.2);
+    speed = rnd::uniform(0.005, 0.06);
     c = HSV(rnd::uniform(), 0.7, 1);
   }
-  void step() { phase += speed; }
+  void step() {
+    Quatf q;
+    q.fromAxisAngle(speed, velocity);
+    q.normalize();
+    position = q.rotate(position);
+
+    phase += speed;
+  }
   void draw(Graphics& g) {
     g.pushMatrix();
-    g.rotate(phase, velocity);
     g.translate(position);
     g.color(c);
     g.draw(sphere);
@@ -36,6 +42,7 @@ struct MyApp : App {
   Material material;
   Light light;
   vector<Particle> particle;
+  Particle special;
 
   MyApp() {
     addSphere(sphere, sphereRadius);
@@ -43,6 +50,7 @@ struct MyApp : App {
     light.pos(0, 0, 0);              // place the light
     nav().pos(0, 0, 30);             // place the viewer
     particle.resize(particleCount);  // make all the particles
+    special.c = Color(1);
     background(Color(0.07));
     lens().far(200);
     initWindow();
@@ -50,6 +58,23 @@ struct MyApp : App {
   }
 
   void onAnimate(double dt) {
+    static double t = 0;
+    static int which = 0;
+    t += dt;
+    if (t > 3) {
+      t -= 3;
+      which = rnd::uniform(particleCount);
+    }
+
+    Quatf p(particle[which].position), q(special.position);
+    p.normalize();
+    q.normalize();
+    q.slerpTo(p, 0.03);
+    special.position.x = q.x;
+    special.position.y = q.y;
+    special.position.z = q.z;
+    special.position.normalize(23);
+
     for (auto& p : particle) p.step();
   }
 
@@ -57,6 +82,7 @@ struct MyApp : App {
     material();
     light();
     g.scale(scaleFactor);
+    special.draw(g);
     for (auto p : particle) p.draw(g);
   }
 
