@@ -7,6 +7,7 @@
 // - How to update texture coordinates
 //
 
+#include <unistd.h>
 #include <cassert>  // gets you assert()
 #include "allocore/io/al_App.hpp"
 
@@ -28,7 +29,7 @@ struct AlloApp : App {
   AlloApp() {
     Image image;
     const char* fileName = "chart.png";
-    if (!image.load(fullPathOrDie(fileName, ".."))) {
+    if (!image.load(fullPathOrDie(fileName))) {
       cerr << "failed to load " << fileName << endl;
       exit(1);
     }
@@ -63,4 +64,8 @@ struct AlloApp : App {
   }
 };
 
-int main() { AlloApp().start(); }
+int main() {
+  char buf[1000];
+  printf("%s\n", getcwd(buf, 1000));
+  AlloApp().start();
+}

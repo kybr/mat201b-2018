@@ -1,18 +1,8 @@
-// MAT201B
-// Fall 2015
-// Author(s): Tim Wood
-//
-// Shows how to:
-// - Load an image into a texture
-// - Bind a texture and draw on a mesh
-// - draw textured sphere so that it is always in the background
-//
-
-#include "allocore/io/al_App.hpp"
+#include "alloutil/al_OmniStereoGraphicsRenderer.hpp"
 using namespace al;
 using namespace std;
 
-struct AlloApp : App {
+struct AlloApp : OmniStereoGraphicsRenderer {
   Light light;
   Mesh bgMesh;
   Texture bgTexture;
@@ -35,8 +25,6 @@ struct AlloApp : App {
     addCube(m);
     m.generateNormals();
 
-    initWindow();
-
     // load image into texture print out error and exit if failure
     Image image;
     SearchPaths searchPaths;
@@ -51,7 +39,10 @@ struct AlloApp : App {
     bgTexture.allocate(image.array());
   }
 
-  virtual void onDraw(Graphics& g, const Viewpoint& v) {
+  // virtual void onDraw(Graphics& g, const Viewpoint& v) {
+  virtual void onDraw(Graphics& g) {
+    shader().uniform("lighting", 0.0);
+    shader().uniform("texture", 1.0);
     // draw background textured sphere centered at nav
     g.lighting(false);  // turn off lighting
     g.depthMask(
@@ -68,6 +59,8 @@ struct AlloApp : App {
 
     g.depthMask(true);  // turn depth mask back on
     light();            // enable light
+    shader().uniform("lighting", 1.0);
+    shader().uniform("texture", 0.0);
 
     // draw scene here (now just a cube at origin)
     g.pushMatrix();
@@ -76,24 +69,9 @@ struct AlloApp : App {
     g.popMatrix();
   }
 
-  virtual void onAnimate(double dt) {}
-
-  // onMouseMove is when the mouse moves
-  virtual void onMouseMove(const ViewpointWindow& w, const Mouse& m) {
-    // normalize mouse position from -1.0 to 1.0
-    float x = float(m.x()) / w.width() * 2.f - 1.f;
-    float y = (float(m.y()) / w.height() * 2.f - 1.f) * -1.f;
-
-    // move light with mouse
-    light.pos(Vec3f(x, y, 1.f) * 10.f);
-  }
-
-  // other mouse callbacks
-  //
-  virtual void onMouseDown(const ViewpointWindow& w, const Mouse& m) {}
-  virtual void onMouseUp(const ViewpointWindow& w, const Mouse& m) {}
-  virtual void onMouseDrag(const ViewpointWindow& w, const Mouse& m) {}
+  virtual void onAnimate(double dt) { pose = nav(); }
 };
+
 int main(int argc, char* argv[]) {
   AlloApp app;
   app.start();
