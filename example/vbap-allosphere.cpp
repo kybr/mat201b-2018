@@ -1,7 +1,6 @@
 #include "allocore/io/al_App.hpp"
 #include "allocore/sound/al_Vbap.hpp"
 #include "alloutil/al_AlloSphereSpeakerLayout.hpp"
-
 #include "Gamma/Envelope.h"
 #include "Gamma/Filter.h"
 #include "Gamma/Gamma.h"
@@ -18,7 +17,10 @@ struct NotchedNoise {
   NoisePink<> src;  // Source to envelope
   Decay<> env;      // Exponentially decaying envelope
   Biquad<> bq;      // Biquad filter
+  double amplitude, period;
   NotchedNoise(double cutoff, double res, double period) {
+    amplitude = 0.707;
+    this->period = period;
     bq.type(BAND_PASS);
     bq.freq(cutoff);
     bq.res(res);  // Set resonance of filter
@@ -28,8 +30,8 @@ struct NotchedNoise {
 
   float operator()() {
     if (tmr()) {
-      env.decay(0.1);  // Set decay length to 1 second
-      env.reset(0.1);  // Reset envelope and specify amplitude
+      env.decay(period);
+      env.reset(amplitude);  // Reset envelope and specify amplitude
     }
 
     // Envelope source
@@ -37,7 +39,7 @@ struct NotchedNoise {
   }
 };
 
-#define BLOCK_SIZE (2048)
+#define BLOCK_SIZE (512)
 #define SAMPLE_RATE (44100)
 
 static SpeakerLayout* speakerLayout;
@@ -47,9 +49,16 @@ static SoundSource source;
 static AudioScene scene(BLOCK_SIZE);
 
 struct Appp : App {
-  NotchedNoise notchedNoise = NotchedNoise(1000, 4, 0.1);
+  NotchedNoise notchedNoise = NotchedNoise(760, 2, 1.0);
+
+
+  Accum<> tmr;
+  SineD<> d;
   Appp() {
-    bool inAlloSphere = system("ls /alloshase >> /dev/null 2>&1") == 0;
+    tmr.period(1);
+    d.freq(555);
+    d.decay(1);
+    bool inAlloSphere = system("ls /alloshare >> /dev/null 2>&1") == 0;
     // AudioDevice::printAll();
     // audioIO().print();
 
@@ -73,14 +82,14 @@ struct Appp : App {
     // source.nearClip(near);
     // source.farClip(listenRadius);
     source.law(ATTEN_NONE);
-    source.law(ATTEN_LINEAR);
-    source.law(ATTEN_INVERSE);
-    source.law(ATTEN_INVERSE_SQUARE);
+    //source.law(ATTEN_LINEAR);
+    //source.law(ATTEN_INVERSE);
+    //source.law(ATTEN_INVERSE_SQUARE);
     source.dopplerType(DOPPLER_NONE);
 
     scene.addSource(source);
-    scene.usePerSampleProcessing(false);
-    // scene.usePerSampleProcessing(true);
+    //scene.usePerSampleProcessing(false);
+    scene.usePerSampleProcessing(true);
 
     if (inAlloSphere) {
       audioIO().device(AudioDevice("ECHO X5"));
@@ -95,12 +104,17 @@ struct Appp : App {
   virtual void onSound(AudioIOData& io) {
     gam::Sync::master().spu(audioIO().fps());
     static double t = 0;
-    source.pos(5 * sin(t), 5 * cos(t), -5 * cos(t));
-    t += float(BLOCK_SIZE) / SAMPLE_RATE;
+    //t += float(BLOCK_SIZE) / SAMPLE_RATE;
     while (io()) {
-      source.writeSample(notchedNoise());
+      source.pos(5 * sin(t), 5 * cos(t), -5 * cos(t));
+      t += float(1) / SAMPLE_RATE;
+      if (tmr()) {
+        d.reset();
+      }
+      source.writeSample(d());
+      //source.writeSample(notchedNoise());
     }
-    io.frame(0);
+    //io.frame(0);
     listener->pos(0, 0, 0);
     scene.render(io);
   }
