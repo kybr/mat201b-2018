@@ -50,16 +50,18 @@ static SoundSource source;
 static AudioScene scene(BLOCK_SIZE);
 
 struct Appp : App {
-  NotchedNoise notchedNoise = NotchedNoise(760, 2, 1.0);
+  NotchedNoise notchedNoise = NotchedNoise(760, 2, 0.4);
 
-  Accum<> tmr;
+  Accum<> decayingSineReset;
   SineD<> decayingSine;
 
   double radius = 20;
   bool movePerSample = true;
   bool bypass = true;
   bool cleanSignal = true;
+  bool perSampleProcessing = true;
 
+  int blockSize = BLOCK_SIZE;
   Light light;
   Mesh sphere;
 
@@ -68,9 +70,9 @@ struct Appp : App {
     sphere.generateNormals();
     light.pos(7, 7, 7);
 
-    tmr.period(1);
-    decayingSine.freq(555);
-    decayingSine.decay(1);
+    decayingSineReset.period(0.4);
+    decayingSine.freq(440);
+    decayingSine.decay(0.4);
 
     bool inAlloSphere = system("ls /alloshare >> /dev/null 2>&1") == 0;
     // AudioDevice::printAll();
@@ -97,14 +99,10 @@ struct Appp : App {
     source.nearClip(1);
     source.farClip(50);
     source.law(ATTEN_NONE);
-    // source.law(ATTEN_LINEAR);
-    // source.law(ATTEN_INVERSE);
-    // source.law(ATTEN_INVERSE_SQUARE);
     source.dopplerType(DOPPLER_NONE);
 
     scene.addSource(source);
-    // scene.usePerSampleProcessing(false);
-    scene.usePerSampleProcessing(true);
+    scene.usePerSampleProcessing(perSampleProcessing);
 
     if (inAlloSphere) {
       audioIO().device(AudioDevice("ECHO X5"));
@@ -134,7 +132,7 @@ struct Appp : App {
         t += float(1) / sampleRate;
       }
 
-      if (tmr()) decayingSine.reset();
+      if (decayingSineReset()) decayingSine.reset();
 
       double s = 0;
 
@@ -172,9 +170,59 @@ struct Appp : App {
   }
 
   virtual void onKeyDown(const ViewpointWindow& w, const Keyboard& k) {
+    cout << "#######################################" << endl;
     if (k.key() == 'n') cleanSignal = !cleanSignal;
     if (k.key() == 'b') bypass = !bypass;
-    if (k.key() == 'p') movePerSample = !movePerSample;
+    if (k.key() == 'm') movePerSample = !movePerSample;
+    if (k.key() == 'p') {
+      perSampleProcessing = !perSampleProcessing;
+      scene.usePerSampleProcessing(perSampleProcessing);
+    }
+
+    cout << "cleanSignal:" << cleanSignal << endl;
+    cout << "bypass:" << bypass << endl;
+    cout << "movePerSample:" << movePerSample << endl;
+    cout << "perSampleProcessing:" << perSampleProcessing << endl;
+
+    switch (k.key()) {
+      default:
+      case '0':
+        source.law(ATTEN_NONE);
+        cout << "source.law(ATTEN_NONE);" << endl;
+        break;
+      case '1':
+        source.law(ATTEN_LINEAR);
+        cout << "source.law(ATTEN_LINEAR);" << endl;
+        break;
+      case '2':
+        source.law(ATTEN_INVERSE);
+        cout << "source.law(ATTEN_INVERSE);" << endl;
+        break;
+      case '3':
+        source.law(ATTEN_INVERSE_SQUARE);
+        cout << "source.law(ATTEN_INVERSE_SQUARE);" << endl;
+        break;
+    }
+
+    if (k.key() == '-' || k.key() == '_') {
+      blockSize /= 2;
+      cout << "blockSize:" << blockSize << endl;
+      restartAudio();
+      cout << "framesPerBuffer:" << audioIO().framesPerBuffer() << endl;
+    }
+    if (k.key() == '=' || k.key() == '+') {
+      blockSize *= 2;
+      cout << "blockSize:" << blockSize << endl;
+      restartAudio();
+      cout << "framesPerBuffer:" << audioIO().framesPerBuffer() << endl;
+    }
+  }
+
+  void restartAudio() {
+    scene.numFrames(blockSize);
+    audioIO().close();
+    audioIO().framesPerBuffer(blockSize);
+    audioIO().start();
   }
 };
 
