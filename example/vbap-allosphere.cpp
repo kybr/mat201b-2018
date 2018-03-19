@@ -5,7 +5,7 @@
 #include "Gamma/Oscillator.h"
 
 #include "allocore/io/al_App.hpp"
-#include "allocore/sound/al_AmbiSonics.hpp"
+#include "allocore/sound/al_Ambisonics.hpp"
 #include "allocore/sound/al_Vbap.hpp"
 #include "alloutil/al_AlloSphereSpeakerLayout.hpp"
 
@@ -53,11 +53,25 @@ struct Appp : App {
   NotchedNoise notchedNoise = NotchedNoise(760, 2, 1.0);
 
   Accum<> tmr;
-  SineD<> d;
+  SineD<> decayingSine;
+
+  double radius = 20;
+  bool movePerSample = true;
+  bool bypass = true;
+  bool cleanSignal = true;
+
+  Light light;
+  Mesh sphere;
+
   Appp() {
+    addSphere(sphere);
+    sphere.generateNormals();
+    light.pos(7, 7, 7);
+
     tmr.period(1);
-    d.freq(555);
-    d.decay(1);
+    decayingSine.freq(555);
+    decayingSine.decay(1);
+
     bool inAlloSphere = system("ls /alloshare >> /dev/null 2>&1") == 0;
     // AudioDevice::printAll();
     // audioIO().print();
@@ -65,8 +79,8 @@ struct Appp : App {
     if (inAlloSphere) {
       cout << "Using 3 speaker layout" << endl;
       speakerLayout = new AlloSphereSpeakerLayout();
-      // panner = new Vbap(*speakerLayout);
-      panner = new AmbisonicsSpatializer(*speakerLayout, 3, 3);
+      panner = new Vbap(*speakerLayout);
+      // panner = new AmbisonicsSpatializer(*speakerLayout, 3, 3);
       // dynamic_cast<Vbap*>(panner)->setIs3D(false);  // no 3d!
     } else {
       // cout << "Using Headset Speaker Layout" << endl;
@@ -80,8 +94,8 @@ struct Appp : App {
     listener = scene.createListener(panner);
     listener->compile();  // XXX need this?
 
-    // source.nearClip(near);
-    // source.farClip(listenRadius);
+    source.nearClip(1);
+    source.farClip(50);
     source.law(ATTEN_NONE);
     // source.law(ATTEN_LINEAR);
     // source.law(ATTEN_INVERSE);
@@ -100,35 +114,67 @@ struct Appp : App {
     }
     cout << "Audio Device: " << endl;
     audioIO().print();
+
+    initWindow();
   }
 
   virtual void onSound(AudioIOData& io) {
-    gam::Sync::master().spu(audioIO().fps());
+    double sampleRate = audioIO().fps();
+    gam::Sync::master().spu(sampleRate);
+
     static double t = 0;
-    // t += float(BLOCK_SIZE) / SAMPLE_RATE;
-    while (io()) {
-      source.pos(5 * sin(t), 5 * cos(t), -5 * cos(t));
-      t += float(1) / SAMPLE_RATE;
-      if (tmr()) {
-        d.reset();
-      }
-      io.out(0) = io.out(1) = d();
-      // source.writeSample(d());
-      // source.writeSample(notchedNoise());
+    if (!movePerSample) {
+      source.pos(radius * sin(t), 0, -radius * cos(t));
+      t += float(BLOCK_SIZE) / sampleRate;
     }
-    // io.frame(0);
-    listener->pos(0, 0, 0);
-    // scene.render(io);
+
+    while (io()) {
+      if (movePerSample) {
+        source.pos(radius * sin(t), 0, -radius * cos(t));
+        t += float(1) / sampleRate;
+      }
+
+      if (tmr()) decayingSine.reset();
+
+      double s = 0;
+
+      if (cleanSignal)
+        s = decayingSine();
+      else
+        s = notchedNoise();
+
+      if (bypass)
+        for (int i = 0; i < io.channelsOut(); i++) io.out(i) = s;
+      else
+        source.writeSample(s);
+    }
+
+    if (!bypass) {
+      io.frame(0);
+      listener->pos(0, 0, 0);
+      scene.render(io);
+    }
   }
 
-  double t = 0;
-  virtual void onAnimate(double dt) { t += dt; }
+  virtual void onAnimate(double dt) {
+    //
+    //
+    //
+  }
 
-  virtual void onDraw(Graphics& g, const Viewpoint& v) {}
+  virtual void onDraw(Graphics& g, const Viewpoint& v) {
+    //
+    //
+    //
+    light();
+    g.translate(source.pos());
+    g.draw(sphere);
+  }
 
   virtual void onKeyDown(const ViewpointWindow& w, const Keyboard& k) {
-    if (k.key() == 'm') {
-    }
+    if (k.key() == 'n') cleanSignal = !cleanSignal;
+    if (k.key() == 'b') bypass = !bypass;
+    if (k.key() == 'p') movePerSample = !movePerSample;
   }
 };
 
