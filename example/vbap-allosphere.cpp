@@ -1,12 +1,13 @@
-#include "allocore/io/al_App.hpp"
-#include "allocore/sound/al_Vbap.hpp"
-#include "alloutil/al_AlloSphereSpeakerLayout.hpp"
 #include "Gamma/Envelope.h"
 #include "Gamma/Filter.h"
 #include "Gamma/Gamma.h"
 #include "Gamma/Noise.h"
 #include "Gamma/Oscillator.h"
+
 #include "allocore/io/al_App.hpp"
+#include "allocore/sound/al_AmbiSonics.hpp"
+#include "allocore/sound/al_Vbap.hpp"
+#include "alloutil/al_AlloSphereSpeakerLayout.hpp"
 
 using namespace al;
 using namespace std;
@@ -39,7 +40,7 @@ struct NotchedNoise {
   }
 };
 
-#define BLOCK_SIZE (512)
+#define BLOCK_SIZE (4096)
 #define SAMPLE_RATE (44100)
 
 static SpeakerLayout* speakerLayout;
@@ -50,7 +51,6 @@ static AudioScene scene(BLOCK_SIZE);
 
 struct Appp : App {
   NotchedNoise notchedNoise = NotchedNoise(760, 2, 1.0);
-
 
   Accum<> tmr;
   SineD<> d;
@@ -65,7 +65,8 @@ struct Appp : App {
     if (inAlloSphere) {
       cout << "Using 3 speaker layout" << endl;
       speakerLayout = new AlloSphereSpeakerLayout();
-      panner = new Vbap(*speakerLayout);
+      // panner = new Vbap(*speakerLayout);
+      panner = new AmbisonicsSpatializer(*speakerLayout, 3, 3);
       // dynamic_cast<Vbap*>(panner)->setIs3D(false);  // no 3d!
     } else {
       // cout << "Using Headset Speaker Layout" << endl;
@@ -82,13 +83,13 @@ struct Appp : App {
     // source.nearClip(near);
     // source.farClip(listenRadius);
     source.law(ATTEN_NONE);
-    //source.law(ATTEN_LINEAR);
-    //source.law(ATTEN_INVERSE);
-    //source.law(ATTEN_INVERSE_SQUARE);
+    // source.law(ATTEN_LINEAR);
+    // source.law(ATTEN_INVERSE);
+    // source.law(ATTEN_INVERSE_SQUARE);
     source.dopplerType(DOPPLER_NONE);
 
     scene.addSource(source);
-    //scene.usePerSampleProcessing(false);
+    // scene.usePerSampleProcessing(false);
     scene.usePerSampleProcessing(true);
 
     if (inAlloSphere) {
@@ -104,19 +105,20 @@ struct Appp : App {
   virtual void onSound(AudioIOData& io) {
     gam::Sync::master().spu(audioIO().fps());
     static double t = 0;
-    //t += float(BLOCK_SIZE) / SAMPLE_RATE;
+    // t += float(BLOCK_SIZE) / SAMPLE_RATE;
     while (io()) {
       source.pos(5 * sin(t), 5 * cos(t), -5 * cos(t));
       t += float(1) / SAMPLE_RATE;
       if (tmr()) {
         d.reset();
       }
-      source.writeSample(d());
-      //source.writeSample(notchedNoise());
+      io.out(0) = io.out(1) = d();
+      // source.writeSample(d());
+      // source.writeSample(notchedNoise());
     }
-    //io.frame(0);
+    // io.frame(0);
     listener->pos(0, 0, 0);
-    scene.render(io);
+    // scene.render(io);
   }
 
   double t = 0;
